@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flask Emotion Evaluator</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Arial", sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: white;
+        border-radius: 15px;
+        padding: 40px;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        max-width: 600px;
+        width: 100%;
+        backdrop-filter: blur(10px);
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 30px;
+        font-size: 2.8em;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .form-group {
+        margin-bottom: 25px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 12px;
+        font-weight: bold;
+        color: #555;
+        font-size: 1.1em;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 140px;
+        padding: 18px;
+        border: 2px solid #ddd;
+        border-radius: 12px;
+        font-size: 16px;
+        resize: vertical;
+        font-family: inherit;
+        transition: all 0.3s ease;
+      }
+
+      textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 15px rgba(102, 126, 234, 0.2);
+      }
+
+      button {
+        width: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 18px;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+      }
+
+      button:active {
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .result {
+        margin-top: 25px;
+        padding: 25px;
+        border-radius: 12px;
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+        display: none;
+        animation: slideIn 0.3s ease;
+      }
+
+      .result.positive {
+        background: linear-gradient(135deg, #d4edda, #c3e6cb);
+        color: #155724;
+        border: 2px solid #c3e6cb;
+      }
+
+      .result.negative {
+        background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+        color: #721c24;
+        border: 2px solid #f5c6cb;
+      }
+
+      .result.neutral {
+        background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+        color: #856404;
+        border: 2px solid #ffeaa7;
+      }
+
+      .result.error {
+        background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+        color: #721c24;
+        border: 2px solid #f5c6cb;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        margin-top: 25px;
+      }
+
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .examples {
+        margin-top: 25px;
+        padding: 20px;
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border-radius: 12px;
+        border: 1px solid #dee2e6;
+      }
+
+      .examples h3 {
+        margin-bottom: 15px;
+        color: #555;
+        font-size: 18px;
+        text-align: center;
+      }
+
+      .example-text {
+        cursor: pointer;
+        padding: 12px 16px;
+        margin: 8px 0;
+        background: white;
+        border-radius: 8px;
+        border: 2px solid transparent;
+        font-size: 15px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .example-text:hover {
+        background: #f8f9fa;
+        border-color: #667eea;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+      }
+
+      
+      .status {
+        text-align: center;
+        padding: 12px;
+        margin-bottom: 25px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      .status.online {
+        background: linear-gradient(135deg, #d4edda, #c3e6cb);
+        color: #155724;
+        border: 2px solid #c3e6cb;
+      }
+
+      .status.offline {
+        background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+        color: #721c24;
+        border: 2px solid #f5c6cb;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎭 Flask Emotion Evaluator</h1>
+
+      <div id="status" class="status">Checking connection...</div>
+
+      <form id="emotionForm">
+        <div class="form-group">
+          <label for="reviewText">Enter your text:</label>
+          <textarea
+            id="reviewText"
+            placeholder="Write your review or text here..."
+            required
+          ></textarea>
+        </div>
+
+        <button type="submit" id="analyzeBtn">Analyze Emotion</button>
+      </form>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Analyzing your text...</p>
+      </div>
+
+      <div class="result" id="result"></div>
+
+      <div class="examples">
+        <h3>✨ Try these examples:</h3>
+        <div
+          class="example-text"
+          onclick="setExample('I absolutely love this product! It works perfectly and exceeded my expectations.')"
+        >
+          "I absolutely love this product! It works perfectly and exceeded my
+          expectations."
+        </div>
+        <div
+          class="example-text"
+          onclick="setExample('This is terrible. I hate it completely and want my money back.')"
+        >
+          "This is terrible. I hate it completely and want my money back."
+        </div>
+        <div
+          class="example-text"
+          onclick="setExample('It works okay, nothing special but does the job.')"
+        >
+          "It works okay, nothing special but does the job."
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Check API status
+      async function checkStatus() {
+        const statusDiv = document.getElementById("status");
+        const analyzeBtn = document.getElementById("analyzeBtn");
+
+        try {
+          const response = await fetch("/health");
+
+          if (response.ok) {
+            statusDiv.className = "status online";
+            statusDiv.textContent = "✅ Flask server ready!";
+            analyzeBtn.disabled = false;
+          } else {
+            throw new Error("Server not responding");
+          }
+        } catch (error) {
+          statusDiv.className = "status offline";
+          statusDiv.textContent = "❌ Connection issue";
+          analyzeBtn.disabled = true;
+        }
+      }
+
+      // Set example text
+      function setExample(text) {
+        document.getElementById("reviewText").value = text;
+      }
+
+      // Show result
+      function showResult(message, type) {
+        const result = document.getElementById("result");
+        result.className = `result ${type}`;
+        result.textContent = message;
+        result.style.display = "block";
+      }
+
+      // Handle form submission
+      document
+        .getElementById("emotionForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const text = document.getElementById("reviewText").value.trim();
+          const loading = document.getElementById("loading");
+          const result = document.getElementById("result");
+          const analyzeBtn = document.getElementById("analyzeBtn");
+
+          if (!text) {
+            showResult("Please enter some text to analyze.", "error");
+            return;
+          }
+
+          // Show loading
+          loading.style.display = "block";
+          result.style.display = "none";
+          analyzeBtn.disabled = true;
+
+          try {
+            const response = await fetch("/api/analyze", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ text: text }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+              throw new Error(data.error || "Analysis failed");
+            }
+
+            const sentiment = data.sentiment;
+            const confidence = Math.round(data.confidence * 100);
+            const emoji = data.emoji || "";
+
+            showResult(
+              `${emoji} ${sentiment.toUpperCase()} (${confidence}% confident)`,
+              sentiment
+            );
+          } catch (error) {
+            console.error("Error:", error);
+            showResult("Analysis failed. Please try again.", "error");
+          } finally {
+            loading.style.display = "none";
+            analyzeBtn.disabled = false;
+          }
+        });
+
+      // Initialize
+      window.addEventListener("load", checkStatus);
+    </script>
+  </body>
+</html>
